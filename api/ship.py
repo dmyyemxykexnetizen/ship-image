@@ -4,7 +4,6 @@ from PIL import Image, ImageDraw, ImageFont
 import requests
 import io
 import os
-import json
 
 
 TEMPLATE_URL = "https://ik.imagekit.io/uspr1zfl0/324%20sin%20t%C3%ADtulo_20260813205458.png"
@@ -104,24 +103,21 @@ class handler(BaseHTTPRequestHandler):
 
             image_url = upload_to_imagekit(image_data)
 
-            result = json.dumps({
-                "url": image_url
-            })
+            # Devolver SOLO la URL
+            result = image_url
 
             self.send_response(200)
-            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Type", "text/plain")
             self.send_header("Content-Length", str(len(result)))
             self.end_headers()
 
             self.wfile.write(result.encode())
 
         except Exception as e:
-            error = json.dumps({
-                "error": str(e)
-            })
+            error = str(e)
 
             self.send_response(500)
-            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Type", "text/plain")
             self.end_headers()
 
             self.wfile.write(error.encode())
