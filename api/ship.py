@@ -89,10 +89,12 @@ class handler(BaseHTTPRequestHandler):
             text = str(rate) + "%"
 
             draw.text(
-                (330, 192),
+                (330, 230),
                 text,
                 font=font,
                 fill=(255, 255, 255, 255),
+                stroke_width=3,
+                stroke_fill=(0, 0, 0, 255),
                 anchor="mm"
             )
 
@@ -103,7 +105,6 @@ class handler(BaseHTTPRequestHandler):
 
             image_url = upload_to_imagekit(image_data)
 
-            # Devolver SOLO la URL
             result = image_url
 
             self.send_response(200)
