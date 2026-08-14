@@ -28,6 +28,20 @@ def make_circle(image, size):
     return result
 
 
+def get_font(size):
+    font_paths = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf"
+    ]
+
+    for path in font_paths:
+        if os.path.exists(path):
+            return ImageFont.truetype(path, size)
+
+    return ImageFont.load_default()
+
+
 def upload_to_imagekit(image_data):
     private_key = os.environ.get("IMAGEKIT_PRIVATE_KEY")
 
@@ -73,29 +87,38 @@ class handler(BaseHTTPRequestHandler):
             left = make_circle(get_image(left_url), 150)
             right = make_circle(get_image(right_url), 156)
 
+            # Avatares
             template.alpha_composite(left, (50, 25))
             template.alpha_composite(right, (410, 22))
 
-            draw = ImageDraw.Draw(template)
+            # Capa EXCLUSIVA para el porcentaje
+            text_layer = Image.new(
+                "RGBA",
+                template.size,
+                (0, 0, 0, 0)
+            )
 
-            try:
-                font = ImageFont.truetype(
-                    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                    80
-                )
-            except:
-                font = ImageFont.load_default()
+            draw = ImageDraw.Draw(text_layer)
+
+            font = get_font(80)
 
             text = str(rate) + "%"
 
+            # Texto blanco con borde negro
             draw.text(
                 (330, 230),
                 text,
                 font=font,
                 fill=(255, 255, 255, 255),
-                stroke_width=3,
+                stroke_width=5,
                 stroke_fill=(0, 0, 0, 255),
                 anchor="mm"
+            )
+
+            # Poner el texto ENCIMA de absolutamente todo
+            template = Image.alpha_composite(
+                template,
+                text_layer
             )
 
             output = io.BytesIO()
@@ -105,14 +128,12 @@ class handler(BaseHTTPRequestHandler):
 
             image_url = upload_to_imagekit(image_data)
 
-            result = image_url
-
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
-            self.send_header("Content-Length", str(len(result)))
+            self.send_header("Content-Length", str(len(image_url)))
             self.end_headers()
 
-            self.wfile.write(result.encode())
+            self.wfile.write(image_url.encode())
 
         except Exception as e:
             error = str(e)
