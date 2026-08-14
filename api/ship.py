@@ -1,10 +1,11 @@
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-from PIL import Image
+from PIL import Image, ImageDraw
 import requests
 import io
 import os
 import json
+
 
 TEMPLATE_URL = "https://ik.imagekit.io/uspr1zfl0/324%20sin%20t%C3%ADtulo_20260813205458.png"
 
@@ -13,6 +14,19 @@ def get_image(url):
     response = requests.get(url, timeout=10)
     response.raise_for_status()
     return Image.open(io.BytesIO(response.content)).convert("RGBA")
+
+
+def make_circle(image, size):
+    image = image.resize((size, size))
+
+    mask = Image.new("L", (size, size), 0)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((0, 0, size - 1, size - 1), fill=255)
+
+    result = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    result.paste(image, (0, 0), mask)
+
+    return result
 
 
 def upload_to_imagekit(image_data):
@@ -36,7 +50,7 @@ def upload_to_imagekit(image_data):
 
     response.raise_for_status()
 
-    return response.json()["url"]
+    return response.json().get("url", "")
 
 
 class handler(BaseHTTPRequestHandler):
@@ -55,11 +69,9 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             template = get_image(TEMPLATE_URL)
-            left = get_image(left_url)
-            right = get_image(right_url)
 
-            left = left.resize((150, 150))
-            right = right.resize((156, 156))
+            left = make_circle(get_image(left_url), 150)
+            right = make_circle(get_image(right_url), 156)
 
             template.alpha_composite(left, (50, 25))
             template.alpha_composite(right, (410, 22))
