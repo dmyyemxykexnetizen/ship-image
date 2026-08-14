@@ -28,20 +28,6 @@ def make_circle(image, size):
     return result
 
 
-def get_font(size):
-    paths = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf"
-    ]
-
-    for path in paths:
-        if os.path.exists(path):
-            return ImageFont.truetype(path, size)
-
-    return ImageFont.load_default()
-
-
 def upload_to_imagekit(image_data):
     private_key = os.environ.get("IMAGEKIT_PRIVATE_KEY")
 
@@ -74,7 +60,7 @@ class handler(BaseHTTPRequestHandler):
 
             left_url = query.get("left", [None])[0]
             right_url = query.get("right", [None])[0]
-            rate = int(query.get("rate", ["75"])[0])
+            rate = query.get("rate", ["75"])[0]
 
             if not left_url or not right_url:
                 self.send_response(400)
@@ -90,31 +76,31 @@ class handler(BaseHTTPRequestHandler):
             template.alpha_composite(left, (50, 25))
             template.alpha_composite(right, (410, 22))
 
-            # --------------------------------
-            # PRUEBA DEL PORCENTAJE
-            # --------------------------------
-
-            draw = ImageDraw.Draw(template)
-
-            # Rectángulo de prueba
-            draw.rectangle(
-                (250, 150, 410, 310),
-                fill=(255, 0, 0, 255)
+            # Crear una capa independiente
+            text_layer = Image.new(
+                "RGBA",
+                template.size,
+                (0, 0, 0, 0)
             )
 
-            font = get_font(70)
+            text_draw = ImageDraw.Draw(text_layer)
 
-            draw.text(
+            # Fuente predeterminada de Pillow
+            font = ImageFont.load_default()
+
+            # Dibujar el porcentaje
+            text_draw.text(
                 (330, 230),
                 str(rate) + "%",
                 font=font,
-                fill=(255, 255, 255, 255),
-                stroke_width=3,
-                stroke_fill=(0, 0, 0, 255),
-                anchor="mm"
+                fill=(255, 255, 255, 255)
             )
 
-            # --------------------------------
+            # Poner la capa encima
+            template = Image.alpha_composite(
+                template,
+                text_layer
+            )
 
             output = io.BytesIO()
             template.save(output, format="PNG")
@@ -131,11 +117,9 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(image_url.encode())
 
         except Exception as e:
-
             error = str(e)
 
             self.send_response(500)
-            self.send_header("Content-Type", "text/plain")
             self.end_headers()
 
             self.wfile.write(error.encode())
