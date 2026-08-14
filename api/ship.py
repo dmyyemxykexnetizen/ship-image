@@ -93,6 +93,7 @@ DIGITS = {
 def get_image(url):
     response = requests.get(url, timeout=10)
     response.raise_for_status()
+
     return Image.open(
         io.BytesIO(response.content)
     ).convert("RGBA")
@@ -129,36 +130,67 @@ def make_circle(image, size):
     return result
 
 
-def draw_pixel_text(image, text, x, y, scale=20):
+def draw_pixel_text_centered(image, text, center_x, center_y, scale=20):
+
     draw = ImageDraw.Draw(image)
 
-    current_x = x
+    # Calcular ancho total
+    total_width = 0
 
     for character in text:
 
         pattern = DIGITS.get(character)
 
-        if pattern is None:
-            current_x += scale * 4
+        if pattern:
+
+            total_width += (
+                len(pattern[0]) + 1
+            ) * scale
+
+    total_width -= scale
+
+    # Posición inicial
+    current_x = int(
+        center_x - total_width / 2
+    )
+
+    # Altura del texto
+    max_height = 5 * scale
+
+    start_y = int(
+        center_y - max_height / 2
+    )
+
+    # Dibujar
+    for character in text:
+
+        pattern = DIGITS.get(character)
+
+        if not pattern:
+            current_x += scale
             continue
 
         for row in range(len(pattern)):
 
-            for column in range(len(pattern[row])):
+            for column in range(
+                len(pattern[row])
+            ):
 
                 if pattern[row][column] == "1":
 
                     draw.rectangle(
                         (
                             current_x + column * scale,
-                            y + row * scale,
+                            start_y + row * scale,
                             current_x + column * scale + scale - 1,
-                            y + row * scale + scale - 1
+                            start_y + row * scale + scale - 1
                         ),
-                        fill=(0, 0, 0, 255)
+                        fill=(255, 255, 255, 255)
                     )
 
-        current_x += (len(pattern[0]) + 1) * scale
+        current_x += (
+            len(pattern[0]) + 1
+        ) * scale
 
 
 def upload_to_imagekit(image_data):
@@ -244,31 +276,24 @@ class handler(BaseHTTPRequestHandler):
                 156
             )
 
+            # Avatar izquierdo
             template.alpha_composite(
                 left,
                 (50, 25)
             )
 
+            # Avatar derecho
             template.alpha_composite(
                 right,
                 (410, 22)
             )
 
-            # PRUEBA VISUAL
-            draw = ImageDraw.Draw(template)
-
-            # Fondo blanco grande
-            draw.rectangle(
-                (200, 130, 470, 330),
-                fill=(255, 255, 255, 255)
-            )
-
-            # 75% negro
-            draw_pixel_text(
+            # Porcentaje centrado
+            draw_pixel_text_centered(
                 template,
                 str(rate) + "%",
-                220,
-                155,
+                center_x=330,
+                center_y=230,
                 scale=20
             )
 
