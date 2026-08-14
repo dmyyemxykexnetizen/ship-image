@@ -39,14 +39,14 @@ class handler(BaseHTTPRequestHandler):
             template.alpha_composite(right, (410, 22))
 
             output = io.BytesIO()
-            template.save(output, "PNG")
-            output.seek(0)
+            template.save(output, format="PNG")
+            data = output.getvalue()
 
             self.send_response(200)
             self.send_header("Content-Type", "image/png")
-            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Content-Length", str(len(data)))
             self.end_headers()
-            self.wfile.write(output.read())
+            self.wfile.write(data)
 
         except Exception as e:
             self.send_response(500)
