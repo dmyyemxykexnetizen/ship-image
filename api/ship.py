@@ -4,6 +4,7 @@ from PIL import Image
 import requests
 import io
 import os
+import json
 
 TEMPLATE_URL = "https://ik.imagekit.io/uspr1zfl0/324%20sin%20t%C3%ADtulo_20260813205458.png"
 
@@ -34,6 +35,7 @@ def upload_to_imagekit(image_data):
     )
 
     response.raise_for_status()
+
     return response.json()["url"]
 
 
@@ -69,31 +71,24 @@ class handler(BaseHTTPRequestHandler):
 
             image_url = upload_to_imagekit(image_data)
 
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain")
-            self.end_headers()
-            self.wfile.write(image_url.encode())
-
-        except Exception as e:
-            self.send_response(500)
-            self.end_headers()
-            self.wfile.write(str(e).encode())
-
-
-            template.alpha_composite(left, (50, 25))
-            template.alpha_composite(right, (410, 22))
-
-            output = io.BytesIO()
-            template.save(output, format="PNG")
-            data = output.getvalue()
+            result = json.dumps({
+                "url": image_url
+            })
 
             self.send_response(200)
-            self.send_header("Content-Type", "image/png")
-            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(result)))
             self.end_headers()
-            self.wfile.write(data)
+
+            self.wfile.write(result.encode())
 
         except Exception as e:
+            error = json.dumps({
+                "error": str(e)
+            })
+
             self.send_response(500)
+            self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(str(e).encode())
+
+            self.wfile.write(error.encode())
