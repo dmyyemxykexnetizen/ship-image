@@ -3,6 +3,7 @@ from urllib.parse import urlparse, parse_qs
 from PIL import Image
 import requests
 import io
+import os
 
 TEMPLATE_URL = "https://ik.imagekit.io/uspr1zfl0/324%20sin%20t%C3%ADtulo_20260813205458.png"
 
@@ -11,6 +12,29 @@ def get_image(url):
     response = requests.get(url, timeout=10)
     response.raise_for_status()
     return Image.open(io.BytesIO(response.content)).convert("RGBA")
+
+
+def upload_to_imagekit(image_data):
+    private_key = os.environ.get("IMAGEKIT_PRIVATE_KEY")
+
+    if not private_key:
+        raise Exception("IMAGEKIT_PRIVATE_KEY no está configurada")
+
+    response = requests.post(
+        "https://upload.imagekit.io/api/v1/files/upload",
+        auth=(private_key, ""),
+        files={
+            "file": ("ship.png", image_data, "image/png")
+        },
+        data={
+            "fileName": "ship.png",
+            "folder": "/ship-generated"
+        },
+        timeout=30
+    )
+
+    response.raise_for_status()
+    return response.json()["url"]
 
 
 class handler(BaseHTTPRequestHandler):
@@ -34,6 +58,27 @@ class handler(BaseHTTPRequestHandler):
 
             left = left.resize((150, 150))
             right = right.resize((156, 156))
+
+            template.alpha_composite(left, (50, 25))
+            template.alpha_composite(right, (410, 22))
+
+            output = io.BytesIO()
+            template.save(output, format="PNG")
+
+            image_data = output.getvalue()
+
+            image_url = upload_to_imagekit(image_data)
+
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(image_url.encode())
+
+        except Exception as e:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(str(e).encode())
+
 
             template.alpha_composite(left, (50, 25))
             template.alpha_composite(right, (410, 22))
