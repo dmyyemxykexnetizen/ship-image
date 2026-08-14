@@ -130,11 +130,16 @@ def make_circle(image, size):
     return result
 
 
-def draw_pixel_text_centered(image, text, center_x, center_y, scale=20):
+def draw_pixel_text_centered(
+    image,
+    text,
+    center_x,
+    center_y,
+    scale=10
+):
 
     draw = ImageDraw.Draw(image)
 
-    # Calcular ancho total
     total_width = 0
 
     for character in text:
@@ -149,19 +154,16 @@ def draw_pixel_text_centered(image, text, center_x, center_y, scale=20):
 
     total_width -= scale
 
-    # Posición inicial
     current_x = int(
         center_x - total_width / 2
     )
 
-    # Altura del texto
-    max_height = 5 * scale
+    text_height = 5 * scale
 
     start_y = int(
-        center_y - max_height / 2
+        center_y - text_height / 2
     )
 
-    # Dibujar
     for character in text:
 
         pattern = DIGITS.get(character)
@@ -170,7 +172,9 @@ def draw_pixel_text_centered(image, text, center_x, center_y, scale=20):
             current_x += scale
             continue
 
-        for row in range(len(pattern)):
+        for row in range(
+            len(pattern)
+        ):
 
             for column in range(
                 len(pattern[row])
@@ -288,13 +292,13 @@ class handler(BaseHTTPRequestHandler):
                 (410, 22)
             )
 
-            # Porcentaje centrado
+            # Porcentaje centrado en la plantilla 610x200
             draw_pixel_text_centered(
                 template,
                 str(rate) + "%",
-                center_x=330,
-                center_y=230,
-                scale=20
+                center_x=305,
+                center_y=100,
+                scale=10
             )
 
             output = io.BytesIO()
