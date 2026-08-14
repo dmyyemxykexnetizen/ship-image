@@ -29,13 +29,13 @@ def make_circle(image, size):
 
 
 def get_font(size):
-    font_paths = [
+    paths = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf"
     ]
 
-    for path in font_paths:
+    for path in paths:
         if os.path.exists(path):
             return ImageFont.truetype(path, size)
 
@@ -63,7 +63,7 @@ def upload_to_imagekit(image_data):
 
     response.raise_for_status()
 
-    return response.json().get("url", "")
+    return response.json()["url"]
 
 
 class handler(BaseHTTPRequestHandler):
@@ -74,7 +74,7 @@ class handler(BaseHTTPRequestHandler):
 
             left_url = query.get("left", [None])[0]
             right_url = query.get("right", [None])[0]
-            rate = int(query.get("rate", ["50"])[0])
+            rate = int(query.get("rate", ["75"])[0])
 
             if not left_url or not right_url:
                 self.send_response(400)
@@ -87,39 +87,34 @@ class handler(BaseHTTPRequestHandler):
             left = make_circle(get_image(left_url), 150)
             right = make_circle(get_image(right_url), 156)
 
-            # Avatares
             template.alpha_composite(left, (50, 25))
             template.alpha_composite(right, (410, 22))
 
-            # Capa EXCLUSIVA para el porcentaje
-            text_layer = Image.new(
-                "RGBA",
-                template.size,
-                (0, 0, 0, 0)
+            # --------------------------------
+            # PRUEBA DEL PORCENTAJE
+            # --------------------------------
+
+            draw = ImageDraw.Draw(template)
+
+            # Rectángulo de prueba
+            draw.rectangle(
+                (250, 150, 410, 310),
+                fill=(255, 0, 0, 255)
             )
 
-            draw = ImageDraw.Draw(text_layer)
+            font = get_font(70)
 
-            font = get_font(80)
-
-            text = str(rate) + "%"
-
-            # Texto blanco con borde negro
             draw.text(
                 (330, 230),
-                text,
+                str(rate) + "%",
                 font=font,
                 fill=(255, 255, 255, 255),
-                stroke_width=5,
+                stroke_width=3,
                 stroke_fill=(0, 0, 0, 255),
                 anchor="mm"
             )
 
-            # Poner el texto ENCIMA de absolutamente todo
-            template = Image.alpha_composite(
-                template,
-                text_layer
-            )
+            # --------------------------------
 
             output = io.BytesIO()
             template.save(output, format="PNG")
@@ -136,6 +131,7 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(image_url.encode())
 
         except Exception as e:
+
             error = str(e)
 
             self.send_response(500)
