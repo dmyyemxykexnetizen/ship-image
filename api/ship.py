@@ -1,6 +1,6 @@
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import requests
 import io
 import os
@@ -61,6 +61,7 @@ class handler(BaseHTTPRequestHandler):
 
             left_url = query.get("left", [None])[0]
             right_url = query.get("right", [None])[0]
+            rate = int(query.get("rate", ["50"])[0])
 
             if not left_url or not right_url:
                 self.send_response(400)
@@ -75,6 +76,26 @@ class handler(BaseHTTPRequestHandler):
 
             template.alpha_composite(left, (50, 25))
             template.alpha_composite(right, (410, 22))
+
+            draw = ImageDraw.Draw(template)
+
+            try:
+                font = ImageFont.truetype(
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                    80
+                )
+            except:
+                font = ImageFont.load_default()
+
+            text = str(rate) + "%"
+
+            draw.text(
+                (330, 192),
+                text,
+                font=font,
+                fill=(255, 255, 255, 255),
+                anchor="mm"
+            )
 
             output = io.BytesIO()
             template.save(output, format="PNG")
